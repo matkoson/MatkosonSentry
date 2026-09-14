@@ -30,6 +30,18 @@ public enum MatkosonSentry {
         case skippedMissingDSN
     }
 
+    /// Short aliases minted into ~/.env by fleet self-hosted Sentry setup.
+    private static let shortDSNAliases: [String: [String]] = [
+        "menubar": ["SENTRY_DSN_MEN", "SENTRY_DSN_MENUBAR"],
+        "automation": ["SENTRY_DSN_AUTO", "SENTRY_DSN_AUTOMATION"],
+        "aerospace": ["SENTRY_DSN_AER", "SENTRY_DSN_AEROSPACE"],
+        "engine": ["SENTRY_DSN_ENGINE"],
+        "agent-auth": ["SENTRY_DSN_AGENTAUTH", "SENTRY_DSN_AGENT_AUTH"],
+        "control": ["SENTRY_DSN_CONTROL"],
+        "clui": ["SENTRY_DSN_CLUI"],
+        "routine-worker": ["SENTRY_DSN_RW", "SENTRY_DSN_ROUTINE_WORKER"],
+    ]
+
     /// Resolve DSN from environment without logging secret material.
     public static func resolveDSN(envKeys: [String], environment: [String: String] = ProcessInfo.processInfo.environment) -> String? {
         for key in envKeys {
@@ -42,14 +54,19 @@ public enum MatkosonSentry {
 
     public static func defaultDSNEnvKeys(app: String) -> [String] {
         let normalized = app
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        var keys: [String] = shortDSNAliases[normalized] ?? []
+        let upper = normalized
             .uppercased()
             .replacingOccurrences(of: "-", with: "_")
             .replacingOccurrences(of: " ", with: "_")
-        return [
-            "SENTRY_DSN_\(normalized)",
-            "SENTRY_DSN",
-            "MATKOSON_SENTRY_DSN",
-        ]
+        let longKey = "SENTRY_DSN_\(upper)"
+        if !keys.contains(longKey) {
+            keys.append(longKey)
+        }
+        keys.append(contentsOf: ["SENTRY_DSN", "MATKOSON_SENTRY_DSN"])
+        return keys
     }
 
     public static func defaultRelease(bundle: Bundle = .main) -> String {
